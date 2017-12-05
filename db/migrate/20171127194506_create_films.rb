@@ -7,7 +7,7 @@ class CreateFilms < ActiveRecord::Migration[5.1]
       t.float :rating
       t.string :director
       t.string :title
-      t.int :length
+      t.integer :length
 
       t.timestamps
     end

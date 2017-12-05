@@ -1,11 +1,14 @@
+require 'responseMessage.rb'
+
 class FilmController < ApplicationController
   @@important_params = ['filmTitle', 'filmAbout', 'filmLength', 'filmYear', 'filmDirector']
   @@all_params = ['filmTitle', 'filmAbout', 'filmLength', 'filmYear', 'filmDirector',
                 'filmImage', 'filmRating']
-  @@hash_global_and_local = {'filmTitle'=>'title', 'filmAbout'=>'about',
+  @@hash_global_and_local = {'filmId' => 'id', 'filmTitle'=>'title', 'filmAbout'=>'about',
       'filmLength'=>'length', 'filmYear'=>'year', 'filmDirector'=>'director',
       'filmImage'=>'image', 'filmRating'=>'rating'}
   @@int_regexp = /^\d+$/
+  @@rating_regexp = /^[-+]?\d{0,2}(\.[05])?(?!\d)$/
 
 
   def is_parameter_valid(param_name, param, regexp = nil)
@@ -22,9 +25,9 @@ class FilmController < ApplicationController
 
   def get_request_film()
     film = {}
-    temp = @film.slice(:id, :name, :email, :password, :avatar)
+    temp = @film.slice(:id, :title, :about, :length, :image, :rating, :director, :year)
     temp.each do |key, value|
-      user[@@hash_local_and_global.key(key)] = value
+      film[@@hash_global_and_local.key(key)] = value
     end
     film
   end
@@ -32,21 +35,30 @@ class FilmController < ApplicationController
   def params_to_db_params(params)
     db_params = {}
     @@all_params.each do |key|
-      db_params[@@hash_local_and_global[key]] = params[key]
+      db_params[@@hash_global_and_local[key]] = params[key]
     end
     db_params
   end
 
-  def get_request_films()
-
+  def get_request_films(films)
+    needed_params = ['filmRating', 'filmId', 'filmTitle', 'filmImage']
+    out_films = []
+    films.each do |film|
+      out_film = {}
+      needed_params.each do |key|
+        out_film[key] = film[@@hash_global_and_local[key]]
+      end
+      out_films.push(out_film)
+    end
+    out_films
   end
 
   def create_film()
     @@important_params.each do |key|
-      if key == 'filmLength' || key = 'filmYear'
-        check = is_parameter_valid key, param[key], @@int_regexp
+      if key == 'filmLength' || key == 'filmYear'
+        check = is_parameter_valid key, params[key], @@int_regexp
       else
-        check = is_parameter_valid key, param_key, nil
+        check = is_parameter_valid key, params[key], nil
       end
       if check != true
         return render :json => {:respMsg => check}, :status => 400
@@ -54,13 +66,12 @@ class FilmController < ApplicationController
     end
 
     film = Film.new(params_to_db_params(params))
-    if film.valid?
     begin
       film.save()
       return render :json => {:respMsg => "Ok"}, :status => 201
     rescue
-        responseMessage = ReVsponseMessage.new("Database error")
-        return render :json => responseMessage, :status => 500
+      responseMessage = ReVsponseMessage.new("Database error")
+      return render :json => responseMessage, :status => 500
     end
   end
 
@@ -89,29 +100,40 @@ class FilmController < ApplicationController
     render :json => {'respMsg': 'Ok', 'film': get_request_film}
   end
 
-
+  def get_films_count()
+    begin
+      cnt = Film.count()
+    rescue
+      responseMessage = ReVsponseMessage.new("Database error")
+      return render :json => responseMessage, :status => 500
+    end
+    render :json => {:respMsg => "Ok", :filmsCount => cnt}, :status => 200
+  end
 
   def get_films()
-    param_names = ['page', 'count']
+    param_names = ['offset', 'limit']
     param_names.each do |key|
-      check = is_parameter_valid params[key], key, @@int_regexp
+      check = is_parameter_valid key, params[key], @@int_regexp
       if check != true
         return render :json => {:respMsg => check}, :status => 400
       end
     end
 
-    count = Integer(params[:count])
-    offset = Integer(params[:page])*count
+    limit = Integer(params[:limit])
+    offset = Integer(params[:offset])
 
     begin
-
+      films = Film.offset(offset).limit(limit)
+      return render :json => {:respMsg => "Ok", :films => get_request_films(films) }, :status => 200
     rescue
+      responseMessage = ResponseMessage.new("Database error")
+      return render :json => responseMessage, :status => 500
     end
   end
 
   def delete_film()
-    id = params[:id]
-    check_film_id = is_parameter_valid 'id', id, @int_regexp
+    id = params[:filmId]
+    check_film_id = is_parameter_valid 'filmId', id, @int_regexp
     if check_film_id != true
         return render :json => {:respMsg => check_film_id}, :status => 400
     end
@@ -120,7 +142,7 @@ class FilmController < ApplicationController
       film = Film.find_by_id(id)
       if film != nil
         Film.destroy(id)
-        return render :json {:respMsg => "Ok"}, :status => 200
+        return render :json => {:respMsg => "Ok"}, :status => 200
       end
       return render :json => {:respMsg => "No such film"}, :status => 404
     rescue
@@ -130,10 +152,36 @@ class FilmController < ApplicationController
   end
 
   def update_film()
-    init_params
-    update_fields = []
-    @all_params.each do |key|
-      key =
+    update_fields = {}
+    id = params[:filmId]
+    if id == nil
+      return render :json => {:respMsg => "no film specified"}, :status => 400
     end
+
+    @@all_params.each do |key|
+      param = params[key]
+      check = true
+      if param != nil
+        if key == 'filmLength' || key == 'filmYear'
+          check = is_parameter_valid key, param, @@int_regexp
+        else
+          if key == 'filmRating'
+            check = is_parameter_valid key, param, @@rating_regexp
+          end
+        end
+        if check != true
+          return render :json => {:respMsg => check}, :status => 400
+        end
+        update_fields[@@hash_global_and_local[key]] = param
+      end
+    end
+
+    begin
+      Film.update(id, update_fields)
+    rescue
+      responseMessage = ResponseMessage.new("Database error")
+      return render :json => responseMessage, :status => 500
+    end
+    render :json => {:respMsg => "Ok"}, :status => 200
   end
 end
