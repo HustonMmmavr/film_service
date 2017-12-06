@@ -14,7 +14,7 @@ deploy:
   provider: heroku
   api_key:
     secure: 68edd95c-5ab7-4c30-b5fe-b7e87441d87e
-  app: film-serveice
+  app: film-service
 run: bundle exec rake db:migrate
      rails server
 # before_script:
