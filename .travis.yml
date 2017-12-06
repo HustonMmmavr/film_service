@@ -1,0 +1,22 @@
+language: ruby
+rvm:
+  - "2.4.1"
+env:
+  - DB=postgresql
+
+script:
+  - RAILS_ENV=test bundle exec rake db:create
+  - RAILS_ENV=test bundle exec rake db:migrate --trace
+  - bundle exec rake db:test:prepare
+  - bundle exec rspec spec/
+
+deploy:
+  provider: heroku
+  api_key:
+    secure: 68edd95c-5ab7-4c30-b5fe-b7e87441d87e
+  app: film-serveice
+run: bundle exec rake db:migrate
+     rails server
+# before_script:
+#   - mysql -e 'create database myapp_test'
+# bundler_args: --binstubs=./bundler_stubs

@@ -7,11 +7,11 @@ class FilmController < ApplicationController
   @@hash_global_and_local = {'filmId' => 'id', 'filmTitle'=>'title', 'filmAbout'=>'about',
       'filmLength'=>'length', 'filmYear'=>'year', 'filmDirector'=>'director',
       'filmImage'=>'image', 'filmRating'=>'rating'}
-  @@int_regexp = /^\d+$/
+  @@int_regexp = /\A[-+]?[0-9]+\z/
   @@rating_regexp = /^[-+]?\d{0,2}(\.[05])?(?!\d)$/
 
 
-  def is_parameter_valid(param_name, param, regexp = nil)
+  def is_parameter_valid(param_name, param, regexp)
     if param == nil || param == ""
         return param_name + " is Empty"
     end
@@ -68,11 +68,11 @@ class FilmController < ApplicationController
     film = Film.new(params_to_db_params(params))
     begin
       film.save()
-      return render :json => {:respMsg => "Ok"}, :status => 201
     rescue
       responseMessage = ReVsponseMessage.new("Database error")
       return render :json => responseMessage, :status => 500
     end
+    render :json => {:respMsg => "Ok"}, :status => 201
   end
 
   def status()
@@ -82,7 +82,7 @@ class FilmController < ApplicationController
   #return one film
   def get_film()
     id = params[:id]
-    check_film_id = is_parameter_valid 'id', id, @int_regexp
+    check_film_id = is_parameter_valid 'id', id, @@int_regexp
     if check_film_id != true
       return render :json => {:respMsg => check_film_id}, :status => 400
     end
@@ -133,7 +133,7 @@ class FilmController < ApplicationController
 
   def delete_film()
     id = params[:filmId]
-    check_film_id = is_parameter_valid 'filmId', id, @int_regexp
+    check_film_id = is_parameter_valid 'filmId', id, @@int_regexp
     if check_film_id != true
         return render :json => {:respMsg => check_film_id}, :status => 400
     end
@@ -177,6 +177,10 @@ class FilmController < ApplicationController
     end
 
     begin
+      film = Film.find_by_id(id)
+      if film == nil
+        return render :json => {:respMsg => "No film to update"}, :status => 404
+      end
       Film.update(id, update_fields)
     rescue
       responseMessage = ResponseMessage.new("Database error")
