@@ -64,8 +64,10 @@ class FilmController < ApplicationController
         return render :json => {:respMsg => check}, :status => 400
       end
     end
-
-    film = Film.new(params_to_db_params(params))
+    
+    db_params = params_to_db_params(params)
+    db_params['rating'] = 0
+    film = Film.new(db_params)
     begin
       film.save()
     rescue

@@ -16,7 +16,7 @@ class Film < ApplicationRecord
   validates :year,
   :presence => {:message => "Year can't be empty." }, numericality: { only_integer: true }
 
-  # validates :length, numericality: { only_integer: true }
+  validates :length, numericality: { only_integer: true }
 
   validates :rating,
   :presence => {:message => "Rating can't be empty." }, numericality: true
