@@ -3,7 +3,7 @@ require 'rails_helper'
 #TODO check length
 RSpec.describe Film, :type => :model do
   before :context do
-    film = Film.new(:title => "Title", :about => "About", :year => "111", :rating => "1.2", :director => "Directo")
+    film = Film.new(:title => "Title", :about => "About", :year => "111", :length => '12', :rating => "1.2", :director => "Directo")
     film.save
   end
 
@@ -55,7 +55,7 @@ RSpec.describe Film, :type => :model do
     end
 
     it "valid" do
-      film = Film.new(:title => "Title", :about => "About", :year => "1", :rating => "1.2", :director => 'fs')
+      film = Film.new(:title => "Title", :about => "About", :year => "1", :length => '12', :rating => "1.2", :director => 'fs')
       expect(film).to be_valid
     end
   end

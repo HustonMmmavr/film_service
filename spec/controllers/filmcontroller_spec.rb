@@ -2,8 +2,12 @@ require 'rails_helper'
 
 RSpec.describe FilmController, :type => :controller do
   before :context do
-    film = Film.new(:title => "Test", :about => "About", :year => "111", :rating => "1.2", :director => "Directo")
+    film = Film.new(:title => "Test", :about => "About", :year => 111, :length => 12, :rating => "1.2", :director => "Directo")
+    film.valid?
+    p film.errors
     film.save()
+    film.valid?
+    p film.errors
     film = Film.find_by_title("Test")
     @id = film.id
     @title = film.title
