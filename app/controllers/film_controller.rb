@@ -8,7 +8,8 @@ class FilmController < ApplicationController
       'filmLength'=>'length', 'filmYear'=>'year', 'filmDirector'=>'director',
       'filmImage'=>'image', 'filmRating'=>'rating'}
   @@int_regexp = /\A[-+]?[0-9]+\z/
-  @@rating_regexp = /^[-+]?\d{0,2}(\.[05])?(?!\d)$/
+  @@rating_regexp = /^[+-]?([1-9]\d*|0)(\.\d+)?$/
+  # /^[-+]?\d{0,2}(\.[05])?(?!\d)$//
 
 
   def is_parameter_valid(param_name, param, regexp)
@@ -64,7 +65,7 @@ class FilmController < ApplicationController
         return render :json => {:respMsg => check}, :status => 400
       end
     end
-    
+
     db_params = params_to_db_params(params)
     db_params['rating'] = 0
     film = Film.new(db_params)
@@ -106,7 +107,7 @@ class FilmController < ApplicationController
     begin
       cnt = Film.count()
     rescue
-      responseMessage = ReVsponseMessage.new("Database error")
+      responseMessage = ResponseMessage.new("Database error")
       return render :json => responseMessage, :status => 500
     end
     render :json => {:respMsg => "Ok", :filmsCount => cnt}, :status => 200
