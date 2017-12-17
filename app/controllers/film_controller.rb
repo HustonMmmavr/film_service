@@ -75,7 +75,8 @@ class FilmController < ApplicationController
       responseMessage = ReVsponseMessage.new("Database error")
       return render :json => responseMessage, :status => 500
     end
-    render :json => {:respMsg => "Ok"}, :status => 201
+    p film
+    render :json => {:respMsg => "Ok", :data => film.id}, :status => 201
   end
 
   def status()

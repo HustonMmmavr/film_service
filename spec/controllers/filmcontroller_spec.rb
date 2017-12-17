@@ -208,9 +208,10 @@ RSpec.describe FilmController, :type => :controller do
     end
 
     it "check create ok" do
-      post :create_film, :params => { :filmTitle => "Title", :filmAbout => "About",
-              :filmLength => "1", :filmYear => "7", :filmDirector => "Directo", }
+      post :create_film, :params => { :film =>{:filmTitle => "Title", :filmAbout => "About",
+              :filmLength => "1", :filmYear => "7", :filmDirector => "Directo", }}
       data = JSON.parse(response.body)
+      p data
       expect(response.status).to eq(201)
       expect(data['respMsg']).to eq("Ok")
     end
