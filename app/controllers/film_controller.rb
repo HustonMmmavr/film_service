@@ -1,4 +1,5 @@
 require 'responseMessage.rb'
+require_dependency "#{Rails.root.join('app', 'services', 'consumer.rb')}"
 
 class FilmController < ApplicationController
   @@important_params = ['filmTitle', 'filmAbout', 'filmLength', 'filmYear', 'filmDirector']
@@ -44,6 +45,7 @@ class FilmController < ApplicationController
   def get_request_films(films)
     needed_params = ['filmRating', 'filmId', 'filmTitle', 'filmImage']
     out_films = []
+    p Consumer.list
     films.each do |film|
       out_film = {}
       needed_params.each do |key|
@@ -72,7 +74,7 @@ class FilmController < ApplicationController
     begin
       film.save()
     rescue
-      responseMessage = ReVsponseMessage.new("Database error")
+      responseMessage = ResponseMessage.new("Database error")
       return render :json => responseMessage, :status => 500
     end
     p film
@@ -85,6 +87,8 @@ class FilmController < ApplicationController
 
   #return one film
   def get_film()
+    p Consumer.pop()
+    p Consumer.list
     id = params[:id]
     check_film_id = is_parameter_valid 'id', id, @@int_regexp
     if check_film_id != true
