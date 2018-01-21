@@ -1,6 +1,6 @@
 require 'responseMessage.rb'
 require_dependency "#{Rails.root.join('app', 'services', 'consumer.rb')}"
-
+require 'securerandom'
 class FilmController < ApplicationController
   @@important_params = ['filmTitle', 'filmAbout', 'filmLength', 'filmYear', 'filmDirector']
   @@all_params = ['filmTitle', 'filmAbout', 'filmLength', 'filmYear', 'filmDirector',
@@ -10,8 +10,38 @@ class FilmController < ApplicationController
       'filmImage'=>'image', 'filmRating'=>'rating'}
   @@int_regexp = /\A[-+]?[0-9]+\z/
   @@rating_regexp = /^[+-]?([1-9]\d*|0)(\.\d+)?$/
-  # /^[-+]?\d{0,2}(\.[05])?(?!\d)$//
 
+  def check_token_valid(token)
+    # p token
+    if AccessApplication.exists?(:appSecret => token)
+      # p 'here'
+      data = AccessApplication.where(:appSecret => token).first
+      now = Time.now.to_i
+      # p now
+      created = data['created'].to_i
+      # p created
+      if now - created > data['life']
+        return false
+      end
+      return true
+
+    else
+      return false
+    end
+  end
+
+  def get_new_token()
+    appName = params['appId']
+    if appRec = AccessApplication.where(:appName => appName).first
+      token = SecureRandom.hex#SecureRandom.base64 #=> "6BbW0pxO0YENxn38HMUbcQ=="
+      created = Time.now
+      life = 60
+      appRec.update(:appSecret => token, :created => created, :life => life)
+      render :json => {:token => token}, status: 200
+    else
+      render :json => {:respMsg => "Cant uderstand service"}, :status => 401
+    end
+  end
 
   def is_parameter_valid(param_name, param, regexp)
     if param == nil || param == ""
@@ -43,6 +73,7 @@ class FilmController < ApplicationController
   end
 
   def get_request_films(films)
+
     needed_params = ['filmRating', 'filmId', 'filmTitle', 'filmImage']
     out_films = []
     p Consumer.list
@@ -57,6 +88,10 @@ class FilmController < ApplicationController
   end
 
   def create_film()
+    if !check_token_valid params[:appSecret]
+      return :json => {:respMsg => "Not authoeized"}, status: 401
+    end
+
     @@important_params.each do |key|
       if key == 'filmLength' || key == 'filmYear'
         check = is_parameter_valid key, params[key], @@int_regexp
@@ -87,8 +122,10 @@ class FilmController < ApplicationController
 
   #return one film
   def get_film()
-    p Consumer.pop()
-    p Consumer.list
+    if !check_token_valid params[:appSecret]
+      return render :json => {:respMsg => "Not authoeized"}, status: 401
+    end
+
     id = params[:id]
     check_film_id = is_parameter_valid 'id', id, @@int_regexp
     if check_film_id != true
@@ -109,6 +146,9 @@ class FilmController < ApplicationController
   end
 
   def get_films_count()
+    if !check_token_valid params[:appSecret]
+      return :json => {:respMsg => "Not authoeized"}, status: 401
+    end
     begin
       cnt = Film.count()
     rescue
@@ -119,6 +159,10 @@ class FilmController < ApplicationController
   end
 
   def get_films()
+
+    if !check_token_valid params[:appSecret]
+      return :json => {:respMsg => "Not authoeized"}, status: 401
+    end
     param_names = ['offset', 'limit']
     param_names.each do |key|
       check = is_parameter_valid key, params[key], @@int_regexp
@@ -140,6 +184,9 @@ class FilmController < ApplicationController
   end
 
   def delete_film()
+    if !check_token_valid params[:appSecret]
+      return :json => {:respMsg => "Not authoeized"}, status: 401
+    end
     id = params[:filmId]
     check_film_id = is_parameter_valid 'filmId', id, @@int_regexp
     if check_film_id != true
@@ -160,6 +207,10 @@ class FilmController < ApplicationController
   end
 
   def update_film()
+    if !check_token_valid params[:appSecret]
+      return :json => {:respMsg => "Not authoeized"}, status: 401
+    end
+
     update_fields = {}
     id = params[:filmId]
     if id == nil

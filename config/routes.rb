@@ -8,5 +8,7 @@ Rails.application.routes.draw do
   get '/get_films_count/', to: 'film#get_films_count', :as => :get_films_count
 
   get '/status', to: 'film#status'
+
+  post '/get_token', to: 'film#get_new_token'
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end

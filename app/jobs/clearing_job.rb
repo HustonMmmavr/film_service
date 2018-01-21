@@ -6,13 +6,5 @@ class ClearingJob < ApplicationJob
   include Sidekiq::Worker
 
   def perform
-    p 'perfect'
-    p $redis.dbsize()
-    data = Consumer.pop
-    p data
-    while data != nil
-      Film.destroy(param["id"])
-      # Do something later
-    end
   end
 end
