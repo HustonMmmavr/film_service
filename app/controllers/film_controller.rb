@@ -12,34 +12,25 @@ class FilmController < ApplicationController
   @@rating_regexp = /^[+-]?([1-9]\d*|0)(\.\d+)?$/
 
   def check_token_valid(token)
-    # p token
-    if AccessApplication.exists?(:appSecret => token)
-      # p 'here'
-      data = AccessApplication.where(:appSecret => token).first
+    p token
+    data = token.split(' ')
+
+    # data = data[1].split(':')#.split[':']
+    # appId = data[0]
+    appSecret = data[1]
+    p data
+    if rec = AccessApplication.where(:appToken => appSecret).first#:appName => appId, :appSecret => appSecret).first
+      p rec
       now = Time.now.to_i
-      # p now
-      created = data['created'].to_i
-      # p created
-      if now - created > data['life']
+      created = rec['created'].to_i
+      # p creaed
+      # created = created.to_i
+      if now - created > rec['life']
         return false
       end
       return true
-
     else
-      return false
-    end
-  end
-
-  def get_new_token()
-    appName = params['appId']
-    if appRec = AccessApplication.where(:appName => appName).first
-      token = SecureRandom.hex#SecureRandom.base64 #=> "6BbW0pxO0YENxn38HMUbcQ=="
-      created = Time.now
-      life = 60
-      appRec.update(:appSecret => token, :created => created, :life => life)
-      render :json => {:token => token}, status: 200
-    else
-      render :json => {:respMsg => "Cant uderstand service"}, :status => 401
+      return 'uncknown'
     end
   end
 
@@ -73,7 +64,6 @@ class FilmController < ApplicationController
   end
 
   def get_request_films(films)
-
     needed_params = ['filmRating', 'filmId', 'filmTitle', 'filmImage']
     out_films = []
     p Consumer.list
@@ -87,9 +77,40 @@ class FilmController < ApplicationController
     out_films
   end
 
+###############################################################
+#### controllers
+#############################################################
+  def get_new_token()
+    token = request.headers['Authorization']
+    p token
+    data = token.split(' ')
+    data = data[1].split(':')#.split[':']
+
+    appId = data[0]
+    appSecret = data[1]
+    p appSecret
+
+    if appRec = AccessApplication.where(:appName => appId, :appSecret => appSecret)
+      token = SecureRandom.hex#SecureRandom.base64 #=> "6BbW0pxO0YENxn38HMUbcQ=="
+      created = Time.now
+      life = 60
+      appRec.update(:appToken => token, :created => created, :life => life)
+      render :json => {:token => token}, :status => 200
+    else
+      render :json => {:respMsg => "Uncknown service"}, :status => 401
+    end
+  end
+
+
   def create_film()
-    if !check_token_valid params[:appSecret]
-      return :json => {:respMsg => "Not authoeized"}, status: 401
+    p request.headers['Authorization']
+    if (data = check_token_valid(request.headers['Authorization'])) == false
+      p data
+      return render :json => {:respMsg => "Not authorized"}, status: 401
+    else
+      if data == 'uncknown'
+        return render :json => {:respMsg => "Uncknown server"}, :status => 401
+      end
     end
 
     @@important_params.each do |key|
@@ -122,9 +143,16 @@ class FilmController < ApplicationController
 
   #return one film
   def get_film()
-    if !check_token_valid params[:appSecret]
-      return render :json => {:respMsg => "Not authoeized"}, status: 401
+    if (data = check_token_valid(request.headers['Authorization'])) == false
+      return render :json => {:respMsg => "Not authorized"}, status: 401
+    else
+      if data == 'uncknown'
+        return render :json => {:respMsg => "Uncknown server"}, :status => 401
+      end
     end
+    # if !check_token_valid params[:appSecret]
+    #   return render :json => {:respMsg => "Not authoeized"}, status: 401
+    # end
 
     id = params[:id]
     check_film_id = is_parameter_valid 'id', id, @@int_regexp
@@ -146,9 +174,14 @@ class FilmController < ApplicationController
   end
 
   def get_films_count()
-    if !check_token_valid params[:appSecret]
-      return :json => {:respMsg => "Not authoeized"}, status: 401
+    if data = check_token_valid(request.headers['Authorization']) == false
+      return render :json => {:respMsg => "Not authorized"}, status: 401
+    else
+      if data == 'uncknown'
+        return render :json => {:respMsg => "Uncknown server"}, :status => 401
+      end
     end
+
     begin
       cnt = Film.count()
     rescue
@@ -159,10 +192,14 @@ class FilmController < ApplicationController
   end
 
   def get_films()
-
-    if !check_token_valid params[:appSecret]
-      return :json => {:respMsg => "Not authoeized"}, status: 401
+    if (data = check_token_valid(request.headers['Authorization'])) == false
+      return render :json => {:respMsg => "Not authorized"}, status: 401
+    else
+      if data == 'uncknown'
+        return render :json => {:respMsg => "Uncknown server"}, :status => 401
+      end
     end
+
     param_names = ['offset', 'limit']
     param_names.each do |key|
       check = is_parameter_valid key, params[key], @@int_regexp
@@ -184,9 +221,16 @@ class FilmController < ApplicationController
   end
 
   def delete_film()
-    if !check_token_valid params[:appSecret]
-      return :json => {:respMsg => "Not authoeized"}, status: 401
+    if (data = check_token_valid(request.headers['Authorization'])) == false
+      return render :json => {:respMsg => "Not authorized"}, status: 401
+    else
+      if data == 'uncknown'
+        return render :json => {:respMsg => "Uncknown server"}, :status => 401
+      end
     end
+    # if !check_token_valid params[:appSecret]
+    #   return render :json => {:respMsg => "Not authoeized"}, status: 401
+    # end
     id = params[:filmId]
     check_film_id = is_parameter_valid 'filmId', id, @@int_regexp
     if check_film_id != true
@@ -207,8 +251,12 @@ class FilmController < ApplicationController
   end
 
   def update_film()
-    if !check_token_valid params[:appSecret]
-      return :json => {:respMsg => "Not authoeized"}, status: 401
+    if (data = check_token_valid(request.headers['Authorization'])) == false
+      return render :json => {:respMsg => "Not authorized"}, status: 401
+    else
+      if data == 'uncknown'
+        return render :json => {:respMsg => "Uncknown server"}, :status => 401
+      end
     end
 
     update_fields = {}
