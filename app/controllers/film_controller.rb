@@ -12,19 +12,14 @@ class FilmController < ApplicationController
   @@rating_regexp = /^[+-]?([1-9]\d*|0)(\.\d+)?$/
 
   def check_token_valid(token)
-    p token
     data = token.split(' ')
 
-    # data = data[1].split(':')#.split[':']
-    # appId = data[0]
     appSecret = data[1]
     p data
     if rec = AccessApplication.where(:appToken => appSecret).first#:appName => appId, :appSecret => appSecret).first
       p rec
       now = Time.now.to_i
       created = rec['created'].to_i
-      # p creaed
-      # created = created.to_i
       if now - created > rec['life']
         return false
       end
@@ -228,9 +223,7 @@ class FilmController < ApplicationController
         return render :json => {:respMsg => "Uncknown server"}, :status => 401
       end
     end
-    # if !check_token_valid params[:appSecret]
-    #   return render :json => {:respMsg => "Not authoeized"}, status: 401
-    # end
+
     id = params[:filmId]
     check_film_id = is_parameter_valid 'filmId', id, @@int_regexp
     if check_film_id != true
